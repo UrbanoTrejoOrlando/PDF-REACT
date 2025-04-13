@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useProductContext } from "../context/ProductContext";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ProductosUI() {
   const { products, categories, fetchProducts } = useProductContext();
@@ -14,15 +16,43 @@ export default function ProductosUI() {
       ? products
       : products.filter((producto) => producto.category === categoriaSeleccionada);
 
-  const manejarDescarga = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
-    const enlaceDescarga = document.createElement("a");
-    enlaceDescarga.setAttribute("href", dataStr);
-    enlaceDescarga.setAttribute("download", "productos.json");
-    document.body.appendChild(enlaceDescarga);
-    enlaceDescarga.click();
-    document.body.removeChild(enlaceDescarga);
-  };
+  const downloadPDF =()=>{
+    const doc = new jsPDF();
+
+      // Obtiene la fecha actual
+      const today = new Date();
+      const formattedDate = today.toLocaleDateString("es-ES");
+
+      doc.setFontSize(18);
+      doc.setTextColor("#e11d48");
+      doc.text("Reporte - "+ formattedDate, 14,20);
+
+      autoTable(doc,{
+        startY:30,
+        head:[["Categoria", "Producto", "Precio"]],
+        body: productosFiltrados.map((products)=>{
+          return[
+            products.category, 
+            products.name, 
+            "$"+products.price];
+        }),
+        styles:{
+          fontSize:12
+        },
+        headStyles:{
+          fillColor:[244,63,94],
+          textColor:[255,255,255],
+          halign: "center",
+        },
+        bodyStyles:{
+          halign: "center"
+        },
+
+
+      })
+      doc.save(`reporte-${formattedDate}.pdf`)
+  
+  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -52,9 +82,11 @@ export default function ProductosUI() {
         ))}
       </div>
 
+
+
       <div className="flex justify-center mb-6">
         <button
-          onClick={manejarDescarga}
+          onClick={downloadPDF}
           className="px-6 py-2 bg-green-600 text-white font-medium rounded-full hover:bg-green-700 transition-all duration-300"
         >
           Descargar Productos
